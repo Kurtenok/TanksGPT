@@ -15,7 +15,7 @@ public class AIController : MonoBehaviour
     private NavMeshAgent agent;
     void Start()
     {
-        
+        agent = GetComponent<NavMeshAgent>();
     }
 
     // Update is called once per frame
@@ -30,6 +30,9 @@ public class AIController : MonoBehaviour
     }
     private void MoveTo(Vector2 WorldPosition)
     {
-        //agent=
+        if(!agent)
+        return;
+        
+        agent.SetDestination(WorldPosition);
     }
 }
