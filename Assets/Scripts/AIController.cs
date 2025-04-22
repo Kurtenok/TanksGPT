@@ -11,17 +11,30 @@ public class AIController : MonoBehaviour
     [SerializeField] private Transform muzzle;
     [SerializeField] private float BulletSpeed;
     [SerializeField] private float BulletDamage;
+    [SerializeField] private float reloadTime=3;
+    private float remainReloadingTime=0;
 
     private NavMeshAgent agent;
+
+    private Transform player;
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
+        player= GameObject.FindGameObjectWithTag("Player").transform;
     }
 
     // Update is called once per frame
     void Update()
     {
-        
+        if(remainReloadingTime>0)
+        {
+            remainReloadingTime-=Time.deltaTime;
+        }
+        if(player)
+        {
+            RotateTurret(player.position);
+            Shoot();
+        }
     }
 
     private void RotateTurret(Vector2 WorldPosition)
@@ -34,5 +47,17 @@ public class AIController : MonoBehaviour
         return;
         
         agent.SetDestination(WorldPosition);
+    }
+
+     
+    private void Shoot()
+    {
+        if(remainReloadingTime>0)
+        return;
+
+        GameObject bul = Instantiate(Bullet, muzzle.position, muzzle.rotation);
+        Rigidbody2D rb=bul.GetComponent<Rigidbody2D>();
+        rb.AddForce(bul.transform.up*BulletSpeed,ForceMode2D.Impulse);
+        remainReloadingTime=reloadTime;
     }
 }
