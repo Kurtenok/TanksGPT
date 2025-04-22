@@ -20,7 +20,11 @@ public class AIController : MonoBehaviour
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
+        agent.updateRotation=false;
+        agent.updateUpAxis=false;
         player= GameObject.FindGameObjectWithTag("Player").transform;
+
+        agent.SetDestination(player.position);
     }
 
     // Update is called once per frame
@@ -35,6 +39,18 @@ public class AIController : MonoBehaviour
             RotateTurret(player.position);
             Shoot();
         }
+        /*if (agent.velocity.sqrMagnitude > 0.01f) // Если агент двигается
+        {
+            float angle = Mathf.Atan2(agent.velocity.y, agent.velocity.x) * Mathf.Rad2Deg;
+            transform.rotation = Quaternion.Euler(0f, 0f, angle); // Поворот по Z в 2D
+        }*/
+
+        if (agent.velocity.sqrMagnitude > 0)
+        {
+            float angle = Mathf.Atan2(agent.velocity.y, agent.velocity.x) * Mathf.Rad2Deg;
+            transform.rotation = Quaternion.Euler(0, 0, angle - 90f);
+        }
+
     }
 
     private void RotateTurret(Vector2 WorldPosition)
