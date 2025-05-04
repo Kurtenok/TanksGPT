@@ -50,7 +50,7 @@ public class Health : MonoBehaviour
         if(currentHealt<=0)
         {
             currentHealt=0;
-            Destroy(this.gameObject.transform.root);
+            Destroy(this.gameObject.transform.root.gameObject);
             return;
         }
 

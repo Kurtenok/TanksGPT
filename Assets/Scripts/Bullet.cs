@@ -24,7 +24,6 @@ public class Bullet : MonoBehaviour
     }
     void OnTriggerEnter2D(Collider2D collision)
     {
-        Debug.Log("OnTriggerEnter2D to " + collision.gameObject);
         Health health;
         if(collision.gameObject.TryGetComponent<Health>(out health))
         {
