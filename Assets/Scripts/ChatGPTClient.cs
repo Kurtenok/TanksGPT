@@ -1,83 +1,159 @@
-using System.Text;
-using System.Threading.Tasks;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.Networking;
+using System.Text;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 public class ChatGPTClient : MonoBehaviour
 {
-    private string apiKey = "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";
+    [Header("OpenAI Settings")]
+    [SerializeField] private string apiKey = "sk-..."; // Вкажи свій ключ
     private string apiUrl = "https://api.openai.com/v1/chat/completions";
 
-    public async Task<string> SendMessageToChatGPT(string message)
-    {
-        Debug.Log($"[ChatGPT] Отправка запроса: {message}");
+    [Header("References")]
+    [SerializeField] private GameObject enemyTank;
+    [SerializeField] private GameObject playerTank;
 
+    private AIController aiController;
+    private Health enemyHealth;
+    private Health playerHealth;
+    private PlayerAiming playerAiming;
+    private PlayerMovement playerMovement;
+    private UnityEngine.AI.NavMeshAgent enemyAgent;
+
+    void Start()
+    {
+        if (!enemyTank) enemyTank = GameObject.FindGameObjectWithTag("Enemy");
+        if (!playerTank) playerTank = GameObject.FindGameObjectWithTag("Player");
+
+        aiController = enemyTank.GetComponent<AIController>();
+        enemyHealth = enemyTank.GetComponent<Health>();
+        playerHealth = playerTank.GetComponent<Health>();
+        playerAiming = playerTank.GetComponent<PlayerAiming>();
+        playerMovement = playerTank.GetComponent<PlayerMovement>();
+        enemyAgent = enemyTank.GetComponent<UnityEngine.AI.NavMeshAgent>();
+
+        SendInitialPrompt();
+        StartCoroutine(SendSituationEveryXSeconds(7f));
+    }
+
+    private void SendInitialPrompt()
+    {
+        string introMessage =
+            "Hi, I want to create a game in Unity where the opponent is controlled by a neural network. " +
+            "My game is about tanks, with both the player and the opponent being tanks. During the game, events occur, and the neural network receives information about what is happening, the statistics of the tank it controls, and so on.\n" +
+            "For example, you are fighting in a field with only a few cover spots. The opponent (you) gets hit, and you receive a notification with the word \"Hit.\" " +
+            "You also receive statistics showing that you have 150 health points left, while the enemy deals 200 damage. This means you won’t survive the next shot. You need to respond as quickly as possible to determine how the tank should act.\n" +
+            "I will provide you with a description of the map, your tank, the enemy tank, and the event. You must choose one of the tactics from the list I give you. Here is the list:\n" +
+            "Retreat:\n• \"Run away\"\n• \"Retreat backward without cover\"\n• \"Retreat using cover\"\n" +
+            "Defense:\n• \"Hold position defensively\"\n• \"Fire back using cover\"\n• \"Stand still and fire back\"\n" +
+            "Attack:\n• \"Advance slowly using cover\"\n• \"Attack while keeping distance\"\n• \"Attack at close range\"\n" +
+            "Breakthrough:\n• \"Move in and attack from the side\"\n• \"Move in and attack from behind\"\n\n" +
+            "Map:\nMiddle-sized map with covers in center.\n" +
+            "Analyze this data. Next, I will give you a situation, and you must quickly choose the most logical course of action from the list.\n" +
+            "You should write only what is in quotation marks."+
+            "Now, send me inital tactic";
+
+        StartCoroutine(SendRequest(introMessage));
+    }
+
+    IEnumerator SendSituationEveryXSeconds(float seconds)
+    {
+        while (true)
+        {
+            yield return new WaitForSeconds(seconds);
+            string situationPrompt = GenerateSituationPrompt();
+            StartCoroutine(SendRequest(situationPrompt));
+        }
+    }
+
+    private string GenerateSituationPrompt()
+    {
+        float yourHP = enemyHealth.GetHP();
+        float enemyHP = playerHealth.GetHP();
+
+        float yourDamage = aiController.GetDamage();
+        float enemyDamage = playerAiming.GetDamage();
+
+        float yourReload = aiController.GetRemainingReload();
+        float enemyReload = playerAiming.GetRemainingReload();
+
+        float distToEnemy = Vector2.Distance(enemyTank.transform.position, playerTank.transform.position);
+        float distToCover = FindNearestCoverDistance();
+
+        float yourSpeed = enemyAgent != null ? enemyAgent.speed : 2f;
+        float enemySpeed = playerMovement != null ? playerMovement.GetSpeed() : 5f;
+
+        string prompt =
+            $"Your HP: {yourHP}, " +
+            $"Enemy HP: {enemyHP}, " +
+            $"Your Damage: {yourDamage}, " +
+            $"Enemy Damage: {enemyDamage}, " +
+            $"You will be able to shoot in {yourReload:F1}s, " +
+            $"Enemy will be able to shoot in {enemyReload:F1}s, " +
+            $"Distance to enemy: {distToEnemy:F1}m, " +
+            $"Distance to cover: {distToCover:F1}m, " +
+            $"Your speed: {yourSpeed} m/s, " +
+            $"Enemy speed: {enemySpeed} m/s.";
+
+        return prompt;
+    }
+
+    private float FindNearestCoverDistance()
+    {
+        GameObject[] covers = GameObject.FindGameObjectsWithTag("Cover");
+        float minDistance = float.MaxValue;
+
+        foreach (GameObject cover in covers)
+        {
+            float distance = Vector2.Distance(enemyTank.transform.position, cover.transform.position);
+            if (distance < minDistance)
+                minDistance = distance;
+        }
+
+        return minDistance == float.MaxValue ? 999f : minDistance;
+    }
+
+    IEnumerator SendRequest(string prompt)
+    {
         var requestData = new
         {
             model = "gpt-3.5-turbo",
-            messages = new object[] { new { role = "user", content = message } }
+            messages = new[]
+            {
+                new { role = "user", content = prompt }
+            }
         };
 
         string jsonData = JsonConvert.SerializeObject(requestData);
-        Debug.Log($"[ChatGPT] JSON-запрос: {jsonData}");
-
-        byte[] postData = Encoding.UTF8.GetBytes(jsonData);
-
         UnityWebRequest request = new UnityWebRequest(apiUrl, "POST");
-        request.uploadHandler = new UploadHandlerRaw(postData);
+        byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonData);
+        request.uploadHandler = new UploadHandlerRaw(bodyRaw);
         request.downloadHandler = new DownloadHandlerBuffer();
+
         request.SetRequestHeader("Content-Type", "application/json");
         request.SetRequestHeader("Authorization", "Bearer " + apiKey);
 
-        Debug.Log("[ChatGPT] Отправка запроса...");
-
-        // 🔁 Асинхронно ждем завершения запроса через обертку
-        await AwaitUnityWebRequest(request);
-
-        Debug.Log($"[ChatGPT] Код ответа: {request.responseCode}");
+        yield return request.SendWebRequest();
 
         if (request.result == UnityWebRequest.Result.Success)
         {
-            string responseJson = request.downloadHandler.text;
-            ChatGPTResponse response = JsonConvert.DeserializeObject<ChatGPTResponse>(responseJson);
-            string reply = response.choices[0].message.content;
-            Debug.Log($"[ChatGPT] Ответ от ChatGPT: {reply}");
-            return reply;
+            string result = request.downloadHandler.text;
+            string reply = ParseChatGPTResponse(result);
+            Debug.Log("📥 ChatGPT reply: " + reply);
+            aiController.ApplyTactic(reply);
         }
         else
         {
-            Debug.LogError($"[ChatGPT] Ошибка: {request.error} | Код: {request.responseCode}");
-            return null;
+            Debug.LogError("❌ Request failed: " + request.error);
         }
     }
 
-    private Task AwaitUnityWebRequest(UnityWebRequest request)
+    private string ParseChatGPTResponse(string json)
     {
-        var tcs = new TaskCompletionSource<bool>();
-
-        UnityWebRequestAsyncOperation operation = request.SendWebRequest();
-        operation.completed += _ => tcs.SetResult(true);
-
-        return tcs.Task;
-    }
-
-    [System.Serializable]
-    private class ChatGPTResponse
-    {
-        public Choice[] choices;
-    }
-
-    [System.Serializable]
-    private class Choice
-    {
-        public Message message;
-    }
-
-    [System.Serializable]
-    private class Message
-    {
-        public string role;
-        public string content;
+        JObject response = JObject.Parse(json);
+        string reply = response["choices"]?[0]?["message"]?["content"]?.ToString();
+        return reply?.Trim();
     }
 }

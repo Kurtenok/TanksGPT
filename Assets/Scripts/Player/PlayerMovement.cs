@@ -52,4 +52,6 @@ public class PlayerMovement : MonoBehaviour
     {
         rb.velocity=(Vector2)bodyTransform.up * xMovement*movementSpeed;
     }
+    public float GetSpeed() => movementSpeed;
+
 }

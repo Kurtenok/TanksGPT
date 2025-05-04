@@ -1,86 +1,42 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 
 public class Health : MonoBehaviour
 {
-    [SerializeField] float MaxHealth =100;
-    private float currentHealt;
+    public float maxHP = 200;
+    public float currentHP;
+    public float damagePerShot = 40f;
 
-    [SerializeField] Image healthImg;
+    private ChatGPTClient chatGPTClient;
 
-    [SerializeField] Image backImage;
-    [SerializeField] float HpAnimSpeed=1;
-    private float targetFillAmount;
-    private Coroutine currentCoroutine;
-    // Start is called before the first frame update
-    void Awake()
-    {
-        if(MaxHealth<=0)
-        MaxHealth=1;
-
-        currentHealt = MaxHealth;
-
-        if(healthImg)
-        healthImg.fillAmount=1;
-
-        if(backImage)
-        backImage.fillAmount=1;
-    }
     void Start()
     {
-        
-    }
+        currentHP = maxHP;
+        chatGPTClient = FindObjectOfType<ChatGPTClient>();
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
-
-    public void Damage(float damage)
-    {
-        if(damage<=0)
-        return;
-
-        currentHealt-=damage;
-
-        if(currentHealt<=0)
+        /*if (CompareTag("Enemy"))
         {
-            currentHealt=0;
-            Destroy(this.gameObject.transform.root.gameObject);
-            return;
-        }
-
-        if(healthImg)
-        {
-            healthImg.fillAmount=currentHealt/MaxHealth;
-
-            if(backImage)
-            {
-                targetFillAmount=currentHealt/MaxHealth;
-
-                if (currentCoroutine != null)
-                StopCoroutine(currentCoroutine);
-                currentCoroutine = StartCoroutine(AnimateHealthBar());
-            }
-        }
-
-
+            // Надсилаємо запит одразу при старті
+            chatGPTClient?.SendSituationToChatGPT();
+        }*/
     }
-    private IEnumerator AnimateHealthBar()
+
+    public void TakeDamage(float amount)
     {
-        while (Mathf.Abs(backImage.fillAmount - targetFillAmount) > 0.01f)
+        currentHP -= amount;
+
+        /*if (CompareTag("Enemy") && chatGPTClient != null)
         {
-            float fillAmount= Mathf.Lerp(backImage.fillAmount, targetFillAmount, Time.deltaTime * HpAnimSpeed);
-            Debug.Log("Back fill am" + fillAmount);
-            backImage.fillAmount = fillAmount;
-            yield return null;
+            chatGPTClient.SendSituationToChatGPT();
+        }*/
+
+        if (currentHP <= 0)
+        {
+            Destroy(gameObject);
         }
-        backImage.fillAmount = targetFillAmount;
     }
 
-    
+    public float GetHP() => currentHP;
+    public float GetDamage() => damagePerShot;
 }
