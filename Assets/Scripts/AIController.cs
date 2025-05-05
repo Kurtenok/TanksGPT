@@ -77,45 +77,54 @@ public class AIController : MonoBehaviour
 
     // === Тактична поведінка ===
     public void ApplyTactic(string tactic)
+{
+    switch (tactic)
     {
-        switch (tactic.Trim().ToLower())
-        {
-            case "run away":
-                RetreatWithoutStrategy();
-                break;
-            case "retreat backward without cover":
-                RetreatStraightBack();
-                break;
-            case "retreat using cover":
-                RetreatToCover();
-                break;
-            case "hold position defensively":
-                HoldPosition();
-                break;
-            case "stand still and fire back":
-                HoldPosition();
-                break;
-            case "advance slowly using cover":
-                AdvanceWithCover();
-                break;
-            case "attack while keeping distance":
-                AttackFromDistance();
-                break;
-            case "attack at close range":
-                CloseRangeAttack();
-                break;
-            case "move in and attack from the side":
-                FlankFromSide();
-                break;
-            case "move in and attack from behind":
-                FlankFromBehind();
-                break;
-            default:
-                Debug.LogWarning("Unknown tactic: " + tactic);
-                HoldPosition(); // fallback
-                break;
-        }
+        case "run away":
+            RetreatWithoutStrategy();
+            break;
+        case "retreat backward without cover":
+            RetreatStraightBack();
+            break;
+        case "retreat using cover":
+            RetreatToCover();
+            break;
+        case "hold position defensively":
+            HoldPosition();
+            break;
+        case "stand still and fire back":
+            HoldPosition();
+            break;
+        case "advance slowly using cover":
+            AdvanceWithCover();
+            break;
+        case "attack while keeping distance":
+            AttackFromDistance();
+            break;
+        case "attack at close range":
+            CloseRangeAttack();
+            break;
+        case "move in and attack from the side":
+            FlankFromSide();
+            break;
+        case "move in and attack from behind":
+            FlankFromBehind();
+            break;
+        default:
+            Debug.LogWarning("Unknown tactic: " + tactic);
+            HoldPosition();
+
+            // Надсилання повідомлення з нагадуванням
+            ChatGPTClient client = FindObjectOfType<ChatGPTClient>();
+            if (client != null)
+            {
+                client.ResendReminder();
+            }
+
+            break;
     }
+}
+
 
     private void RetreatWithoutStrategy()
     {

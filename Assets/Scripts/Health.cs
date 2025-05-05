@@ -1,42 +1,81 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class Health : MonoBehaviour
 {
-    public float maxHP = 200;
-    public float currentHP;
-    public float damagePerShot = 40f;
+    [Header("Health Settings")]
+    [SerializeField] float MaxHealth = 100;
+    private float currentHealth;
 
-    private ChatGPTClient chatGPTClient;
+    [Header("UI References")]
+    [SerializeField] Image healthImg;
+    [SerializeField] Image backImage;
+    [SerializeField] float HpAnimSpeed = 1;
+
+    private float targetFillAmount;
+    private Coroutine currentCoroutine;
+
+
+    void Awake()
+    {
+        if (MaxHealth <= 0)
+            MaxHealth = 1;
+
+        currentHealth = MaxHealth;
+
+        if (healthImg)
+            healthImg.fillAmount = 1;
+
+        if (backImage)
+            backImage.fillAmount = 1;
+    }
 
     void Start()
     {
-        currentHP = maxHP;
-        chatGPTClient = FindObjectOfType<ChatGPTClient>();
 
-        /*if (CompareTag("Enemy"))
-        {
-            // Надсилаємо запит одразу при старті
-            chatGPTClient?.SendSituationToChatGPT();
-        }*/
     }
 
-    public void TakeDamage(float amount)
+    public void Damage(float damage)
     {
-        currentHP -= amount;
+        if (damage <= 0)
+            return;
 
-        /*if (CompareTag("Enemy") && chatGPTClient != null)
-        {
-            chatGPTClient.SendSituationToChatGPT();
-        }*/
+        currentHealth -= damage;
 
-        if (currentHP <= 0)
+        if (currentHealth <= 0)
         {
-            Destroy(gameObject);
+            currentHealth = 0;
+            Destroy(this.gameObject.transform.root.gameObject);
+            return;
         }
+
+        if (healthImg)
+        {
+            healthImg.fillAmount = currentHealth / MaxHealth;
+
+            if (backImage)
+            {
+                targetFillAmount = currentHealth / MaxHealth;
+
+                if (currentCoroutine != null)
+                    StopCoroutine(currentCoroutine);
+                currentCoroutine = StartCoroutine(AnimateHealthBar());
+            }
+        }
+
     }
 
-    public float GetHP() => currentHP;
-    public float GetDamage() => damagePerShot;
+    private IEnumerator AnimateHealthBar()
+    {
+        while (Mathf.Abs(backImage.fillAmount - targetFillAmount) > 0.01f)
+        {
+            float fillAmount = Mathf.Lerp(backImage.fillAmount, targetFillAmount, Time.deltaTime * HpAnimSpeed);
+            backImage.fillAmount = fillAmount;
+            yield return null;
+        }
+        backImage.fillAmount = targetFillAmount;
+    }
+
+    public float GetHP() => currentHealth;
 }

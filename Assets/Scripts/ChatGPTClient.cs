@@ -8,7 +8,7 @@ using Newtonsoft.Json.Linq;
 public class ChatGPTClient : MonoBehaviour
 {
     [Header("OpenAI Settings")]
-    [SerializeField] private string apiKey = "sk-..."; // Вкажи свій ключ
+    private string apiKey = "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";
     private string apiUrl = "https://api.openai.com/v1/chat/completions";
 
     [Header("References")]
@@ -21,6 +21,8 @@ public class ChatGPTClient : MonoBehaviour
     private PlayerAiming playerAiming;
     private PlayerMovement playerMovement;
     private UnityEngine.AI.NavMeshAgent enemyAgent;
+
+    bool firstSend=true;
 
     void Start()
     {
@@ -52,8 +54,8 @@ public class ChatGPTClient : MonoBehaviour
             "Breakthrough:\n• \"Move in and attack from the side\"\n• \"Move in and attack from behind\"\n\n" +
             "Map:\nMiddle-sized map with covers in center.\n" +
             "Analyze this data. Next, I will give you a situation, and you must quickly choose the most logical course of action from the list.\n" +
-            "You should write only what is in quotation marks."+
-            "Now, send me inital tactic";
+            "You should write ONLY what is in quotation marks."+
+            "Now, send me inital tactic, and it should be something offensive";
 
         StartCoroutine(SendRequest(introMessage));
     }
@@ -95,7 +97,8 @@ public class ChatGPTClient : MonoBehaviour
             $"Distance to enemy: {distToEnemy:F1}m, " +
             $"Distance to cover: {distToCover:F1}m, " +
             $"Your speed: {yourSpeed} m/s, " +
-            $"Enemy speed: {enemySpeed} m/s.";
+            $"Enemy speed: {enemySpeed} m/s."+
+            "Write ONLY tactic from the list";
 
         return prompt;
     }
@@ -151,9 +154,34 @@ public class ChatGPTClient : MonoBehaviour
     }
 
     private string ParseChatGPTResponse(string json)
+{
+    JObject response = JObject.Parse(json);
+    string reply = response["choices"]?[0]?["message"]?["content"]?.ToString();
+    
+    // Витягуємо тільки те, що в лапках
+    int firstQuote = reply.IndexOf('\"');
+    int lastQuote = reply.LastIndexOf('\"');
+
+    if (firstQuote >= 0 && lastQuote > firstQuote)
     {
-        JObject response = JObject.Parse(json);
-        string reply = response["choices"]?[0]?["message"]?["content"]?.ToString();
-        return reply?.Trim();
+        return reply.Substring(firstQuote + 1, lastQuote - firstQuote - 1).Trim().ToLower();
     }
+
+    return reply?.Trim().ToLower(); // fallback
+}
+
+public void ResendReminder()
+{
+    string reminderPrompt =
+        "Your answer did not match any of the available tactics. " +
+        "Please send ONLY one of the tactics from the list below, exactly as written:\n" +
+        "\"Run away\", \"Retreat backward without cover\", \"Retreat using cover\", " +
+        "\"Hold position defensively\", \"Fire back using cover\", \"Stand still and fire back\", " +
+        "\"Advance slowly using cover\", \"Attack while keeping distance\", \"Attack at close range\", " +
+        "\"Move in and attack from the side\", \"Move in and attack from behind\".\n" +
+        "Respond ONLY with one of the tactics in quotation marks. Do not explain or comment.";
+
+    StartCoroutine(SendRequest(reminderPrompt));
+}
+
 }
