@@ -8,7 +8,8 @@ using Newtonsoft.Json.Linq;
 public class ChatGPTClient : MonoBehaviour
 {
     [Header("OpenAI Settings")]
-    private string apiKey = "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";
+    //private string apiKey = "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";
+    private string apiKey;
     private string apiUrl = "https://api.openai.com/v1/chat/completions";
 
     [Header("References")]
@@ -26,6 +27,8 @@ public class ChatGPTClient : MonoBehaviour
 
     void Start()
     {
+        apiKey = ApiKeyLoader.LoadApiKey();
+
         if (!enemyTank) enemyTank = GameObject.FindGameObjectWithTag("Enemy");
         if (!playerTank) playerTank = GameObject.FindGameObjectWithTag("Player");
 
