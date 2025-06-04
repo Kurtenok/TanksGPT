@@ -150,6 +150,7 @@ public class ChatGPTClient : MonoBehaviour
         else
         {
             Debug.LogError("❌ Request failed: " + request.error);
+            aiController.ApplyTactic("hold position defensively");
         }
     }
 
