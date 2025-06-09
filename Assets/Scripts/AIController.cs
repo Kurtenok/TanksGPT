@@ -225,7 +225,6 @@ public class AIController : MonoBehaviour
         return closest;
     }
 
-    // === Публічні геттери для ChatGPTClient ===
     public float GetDamage() => BulletDamage;
     public float GetReloadTime() => reloadTime;
     public float GetRemainingReload() => Mathf.Max(0f, remainReloadingTime);
