@@ -16,6 +16,7 @@ public class Health : MonoBehaviour
     private float targetFillAmount;
     private Coroutine currentCoroutine;
 
+    [SerializeField] GameObject ShowOnDestroy;
 
     void Awake()
     {
@@ -34,6 +35,14 @@ public class Health : MonoBehaviour
     void Start()
     {
 
+    }
+
+    void OnDestroy()
+    {
+        if (ShowOnDestroy)
+        {
+            ShowOnDestroy.SetActive(true);
+        }
     }
 
     public void Damage(float damage)
